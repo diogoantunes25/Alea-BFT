@@ -1,0 +1,15 @@
+pt/ulisboa/tecnico/replica/utils/Confirmable.class
+pt/ulisboa/tecnico/replica/exceptions/KeysNotFoundException.class
+pt/ulisboa/tecnico/replica/domain/Replica$ReplicaConfig.class
+pt/ulisboa/tecnico/replica/domain/Replica$ReplicaConfig$Builder.class
+pt/ulisboa/tecnico/replica/domain/Replica$1.class
+pt/ulisboa/tecnico/replica/domain/grpc/StateMachineServiceImpl.class
+pt/ulisboa/tecnico/replica/utils/transport/Connection$Listener.class
+pt/ulisboa/tecnico/replica/utils/transport/Connection.class
+pt/ulisboa/tecnico/replica/utils/transport/Responsible.class
+pt/ulisboa/tecnico/replica/domain/Replica$Protocol.class
+pt/ulisboa/tecnico/replica/ReplicaMain.class
+pt/ulisboa/tecnico/replica/utils/transport/TcpTransport.class
+pt/ulisboa/tecnico/replica/domain/grpc/StateMachineServiceImpl$2.class
+pt/ulisboa/tecnico/replica/domain/Replica.class
+pt/ulisboa/tecnico/replica/domain/grpc/StateMachineServiceImpl$1.class

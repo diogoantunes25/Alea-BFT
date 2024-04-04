@@ -1,0 +1,16 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message ConfirmRequest {
+  int64 tid = 1;
+}
+
+message ConfirmResponse {}
+
+message ClientAliveRequest {}
+message ClientAliveResponse {}
+
+service ConfirmationService {
+  rpc confirm(stream ConfirmRequest) returns (ConfirmResponse);
+  rpc check(ClientAliveRequest) returns (ClientAliveResponse);
+}

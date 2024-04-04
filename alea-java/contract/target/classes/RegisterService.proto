@@ -1,0 +1,16 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message RegisterRequest {
+    string address = 1;
+    int32 port = 2;
+    int32 controlPort = 3;
+    int32 replicaId = 4;
+}
+
+message RegisterResponse {
+}
+
+service RegisterService {
+    rpc register(RegisterRequest) returns (RegisterResponse);
+}

@@ -1,0 +1,42 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message SystemInfo {
+  double cpu = 1;
+  double bandwidthIn = 2;
+  double bandwidthOut = 3;
+  double freeMemory = 4;
+  double totalMemory = 5;
+  uint64 collectionCount = 6;
+  uint64 collectionTime = 7;
+}
+
+message ReplicaRequest {
+  SystemInfo systemInfo = 1;
+  uint32 replicaId = 2;
+  uint64 time = 3;
+  uint64 received = 4;
+  uint64 confirmed = 5;
+  uint64 dropped = 6;
+  double bufferOccupancy = 7;
+}
+
+message ReplicaResponse {}
+
+message ClientRequest {
+  SystemInfo systemInfo = 1;
+  uint64 txs = 2;
+  uint64 dropped = 8;
+  double latency = 3;
+  uint64 start = 4;
+  uint64 end = 5;
+  uint32 replicaId = 6;
+  uint32 clientId = 7;
+}
+
+message ClientResponse {}
+
+service InformationCollectorService {
+  rpc replicaUpdate(ReplicaRequest) returns (ReplicaResponse);
+  rpc clientUpdate(ClientRequest) returns (ClientResponse);
+}

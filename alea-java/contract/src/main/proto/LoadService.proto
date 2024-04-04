@@ -1,0 +1,24 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message StartRequest {
+  message Replica {
+    string ip = 1;
+    int32 id = 2;
+  }
+
+  repeated Replica replicas = 1;
+  int32 load = 2;
+  bool throughput = 3;
+}
+
+message StartResponse {}
+
+message StopRequest {}
+
+message StopResponse {}
+
+service LoadService {
+  rpc start(StartRequest) returns (StartResponse);
+  rpc stop(StopRequest) returns (StopResponse);
+}

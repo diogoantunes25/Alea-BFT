@@ -1,0 +1,82 @@
+- hosts: hosts
+  become: yes
+  name: Initial cleaning
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Stop running replicas
+      community.docker.docker_container:
+        name: "replica{{ item }}"
+        state: absent
+      loop: "{{ replicas }}"
+
+    - name: Stop running clients
+      community.docker.docker_container:
+        name: "client{{ item }}"
+        state: absent
+      loop: "{{ clients }}"
+
+    - name: Kill (possibly) running containers
+      shell: (docker kill $(docker ps -q) && docker rm $(docker ps -q --all)) || true
+
+    - name: Prune containers
+      shell: docker container prune -f
+
+- hosts: hosts
+  become: yes
+  name: Start replicas and clients
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: start replicas
+      community.docker.docker_container:
+        name: "replica{{ item }}"
+        image: "{{ alea_image_name }}"
+        cpus: "{{ cores_replica }}"
+        networks_cli_compatible: true
+        network_mode: "{{ overlay_net }}"
+        volumes:
+          - "/tmp/alea_settings/replicas/{{item}}:/tmp/settings"
+          - "/tmp/alea_logs/replicas/{{item}}:/tmp/logs"
+          - "/tmp/alea_results/replicas/{{item}}:/tmp/results"
+          - "{{ parties_file }}:/tmp/parties.json"
+        capabilities:
+          - net_admin
+        env:
+          BENCH_ID: "{{ bench_id|int }}"
+          TC_MEAN: "{{ lat_avg|int }}"
+          TC_STDDEV: "{{ lat_stddev|int }}"
+          LD_LIBRARY_PATH: "/usr/lib"
+        auto_remove: true
+
+      loop: "{{ replicas }}"
+      when: item < n
+
+    - name: start clients
+      community.docker.docker_container:
+        name: "client{{ item }}"
+        image: "{{ alea_image_name }}"
+        cpus: "{{ cores_replica }}"
+        networks_cli_compatible: true
+        network_mode: "{{ overlay_net }}"
+        volumes:
+          - "/tmp/alea_settings/clients/{{item}}:/tmp/settings"
+          - "/tmp/alea_logs/clients/{{item}}:/tmp/logs"
+          - "/tmp/alea_results/clients/{{item}}:/tmp/results"
+          - "{{ parties_file }}:/tmp/parties.json"
+        capabilities:
+          - net_admin
+        env:
+          BENCH_ID: "{{ bench_id|int }}"
+          TC_MEAN: "{{ lat_avg|int }}"
+          TC_STDDEV: "{{ lat_stddev|int }}"
+        auto_remove: true
+
+      loop: "{{ clients }}"
+      when: item < n

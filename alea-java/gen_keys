@@ -1,0 +1,4 @@
+#! /bin/bash
+
+cd replica
+mvn exec:java -Dexec.args="-g 15"

@@ -1,0 +1,153 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message TopologyRequest {
+    message Replica {
+        int32 id = 1;
+        string addr = 2;
+        int32 port = 3;
+    }
+    int32 n = 1;
+    int32 f = 2;
+    repeated Replica replicas = 3;
+
+    message GroupKey {
+        int32 k = 1;
+        int32 l = 2;
+        string e = 3;
+        string n = 4;
+    }
+    GroupKey gk = 4;
+    string share = 5;
+}
+
+message TopologyResponse {
+    bool ok = 1;
+}
+
+message ProtocolRequest {
+    enum Protocol {
+        HONEY_BADGER = 0;
+        DUMBO = 1;
+        DUMBO_2 = 2;
+        ALEA_BFT = 3;
+    }
+    Protocol protocol = 1;
+
+    int32 batchSize = 2;
+    int32 payloadSize = 3;
+
+    enum Fault {
+        FREE = 0;
+        CRASH = 1;
+        BYZANTINE = 2;
+    }
+    Fault fault = 4;
+    repeated uint32 faulty = 5;
+
+    enum Benchmark {
+        LATENCY = 0;
+        THROUGHPUT = 1;
+    }
+    Benchmark benchmark = 6;
+
+    int32 load = 7;
+}
+
+message ProtocolResponse {
+    bool ok = 1;
+}
+
+message BenchmarkRequest {
+    /*enum Mode {
+        LATENCY = 0;
+        THROUGHPUT = 1;
+    }
+    Mode mode = 1;
+    int32 numRequests = 2;
+    int32 payloadSize = 3;
+    enum Mode {
+        FREE = 0;
+        CRASH = 1;
+        BYZANTINE = 2;
+    }
+    Mode mode = 3;
+    repeated int32 faulty = 4;*/
+}
+
+message BenchmarkResponse {
+    int32 replicaId = 1;
+    uint64 start = 2;
+    uint64 finish = 3;
+
+    message LatencyMeasurement {
+        uint64 emission = 1;
+        uint64 delivery = 2;
+        uint64 value = 3;
+    }
+    repeated LatencyMeasurement latency = 4;
+
+    message ThroughputMeasurement {
+        uint64 timestamp = 1;
+        uint64 value = 2;
+    }
+    repeated ThroughputMeasurement throughput = 5;
+}
+
+message StartBenchmarkRequest {
+    bool first = 1;
+    int32 load = 2;
+}
+message StartBenchmarkResponse {
+    bool ok = 1;
+}
+
+message StopBenchmarkRequest {}
+message StopBenchmarkResponse {
+    uint32 replica = 1;
+    uint64 start = 2;
+    uint64 finish = 3;
+    uint64 sentMessages = 4;
+    uint64 recvMessages = 5;
+    uint64 totalTx = 6;
+    uint64 droppedTx = 7;
+
+    message Execution {
+        uint64 start = 1;
+        uint64 finish = 2;
+    }
+
+    repeated Execution executions = 8;
+}
+
+
+message ShutdownRequest {
+    int32 timer = 1;
+}
+
+message ShutdownResponse {}
+
+message SubmitRequest {
+    bytes payload = 1;
+}
+
+message SubmitResponse {
+    bool ok = 1;
+}
+
+service BenchmarkService {
+    // benchmark config
+    rpc topology(TopologyRequest) returns (TopologyResponse);
+    rpc protocol(ProtocolRequest) returns (ProtocolResponse);
+
+    // benchmark control
+    rpc start(StartBenchmarkRequest) returns (StartBenchmarkResponse);
+    rpc stop(StopBenchmarkRequest) returns (StopBenchmarkResponse);
+
+    // transaction submission
+    rpc submit(SubmitRequest) returns (SubmitResponse);
+
+    // others... TODO delete?
+    rpc execute(BenchmarkRequest) returns (BenchmarkResponse);
+    rpc shutdown(ShutdownRequest) returns (ShutdownResponse);
+}

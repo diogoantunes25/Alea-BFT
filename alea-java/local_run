@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+
+import sys, json
+import subprocess as sp
+
+RESULTS_FILE=  "/tmp/results"
+PARTIES_FILE = "/tmp/local_parties.json"
+
+def check_args():
+	if len(sys.argv) < 4:
+		die()
+
+def die():
+	print(f"Usage: {sys.argv[0]} <load> <batch> <protocol> <n>")
+	exit(1)
+
+def start_replicas():
+	print("Starting replicas...", end = "", flush = True)
+	batch = int(sys.argv[2])
+	protocol = sys.argv[3]
+	n = int(sys.argv[4])
+
+	cmd = f"./local_replicas {batch} {protocol} {n} 1"
+
+	p = sp.Popen(cmd.split(" "), stdout = sp.DEVNULL, stderr = sp.STDOUT)
+	print("Done")
+
+	return p
+
+def start_client():
+	load = int(sys.argv[1])
+	protocol = sys.argv[3]
+	n = int(sys.argv[4])
+
+	print("Starting client...", end = "", flush = True)
+	mvn_cmd = f"-Dexec.args={load} {protocol} 0 {n} {PARTIES_FILE} {RESULTS_FILE}"
+	cmd = ["mvn", "exec:java", mvn_cmd]
+	p = sp.Popen(cmd, stderr = sp.STDOUT, cwd="client")
+	print("Done")
+
+	p.wait()
+
+	# print("Saving outputs to log files", flush = True, end = "")
+	# with open(f"/tmp/client_log", "w") as fh:
+	# 	fh.write(str(p.stdout.read()))
+	# print("Done")
+
+	if p.returncode < 0:
+		print("WARNING: Client failed")
+
+if __name__ == "__main__":
+	check_args()
+	start_replicas()
+	start_client()
+

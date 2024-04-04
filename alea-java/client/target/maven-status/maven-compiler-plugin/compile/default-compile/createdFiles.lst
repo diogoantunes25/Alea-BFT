@@ -1,0 +1,12 @@
+pt/ulisboa/tecnico/client/utils/transport/Connection.class
+pt/ulisboa/tecnico/client/domain/Client$2.class
+pt/ulisboa/tecnico/client/utils/Confirmable.class
+pt/ulisboa/tecnico/client/ClientMain.class
+pt/ulisboa/tecnico/client/domain/grpc/ConfirmationService.class
+pt/ulisboa/tecnico/client/utils/transport/Responsible.class
+pt/ulisboa/tecnico/client/domain/Client$1.class
+pt/ulisboa/tecnico/client/utils/transport/TcpTransport.class
+pt/ulisboa/tecnico/client/utils/transport/Connection$Listener.class
+pt/ulisboa/tecnico/client/domain/grpc/ConfirmationService$1.class
+pt/ulisboa/tecnico/client/exceptions/KeysNotFoundException.class
+pt/ulisboa/tecnico/client/domain/Client.class

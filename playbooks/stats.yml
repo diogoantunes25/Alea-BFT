@@ -1,0 +1,47 @@
+# Make sure stats are computed on remote and retrieve stats computed
+
+- hosts: hosts
+  become: no
+  name: Stats computing
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Remove old parsing file
+      become: yes
+      file:
+        path: /tmp/parse.py
+        state: absent
+
+    - name: Copy parsing file
+      copy:
+        src: "{{ parse_file }}"
+        dest: "/tmp/parse.py"
+
+    - name: Remove old summaries folder
+      ignore_errors: True
+      become: yes
+      file:
+        path: /tmp/alea_summaries
+        state: absent
+      when: cleanup is not defined or cleanup|bool
+
+    - name: Remove old summaries zip
+      ignore_errors: True
+      become: yes
+      file:
+        path: /tmp/alea_summaries.tgz
+        state: absent
+
+    - name: Create results folder
+      file:
+        path: /tmp/alea_summaries
+        state: directory
+
+    - name: Create replica summary subfolders
+      file:
+        path: "/tmp/alea_summaries/replicas/{{item}}"
+        state: directory
+      loop: "{{ replicas }}"

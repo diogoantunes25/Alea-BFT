@@ -1,0 +1,100 @@
+#! /usr/bin/env python3
+
+import os, subprocess, sys, json
+import java_bench, mir_bench
+
+SETTINGS_FOLDER = "/tmp/settings"
+
+def tc_init():
+    """
+    Applies traffic control to current machine.
+    """
+
+    mean = get_tc_mean()
+    stddev = get_tc_stddev()
+
+    netem_cmd = f"tc qdisc add dev eth0 root handle 1: netem delay {mean}ms {stddev}ms"
+    # don't think the burst (since of token bucket) and limit (size of packet buffer)
+    # should matter. 
+    rate_cmd = "tc qdisc add dev lo parent 1: tbf burst 100000000 limit 10000000 mtu 1514 rate 1Gbi"
+
+    print("Applying traffic shapping...")
+    print(f"Delay mean = {mean}ms")
+    print(f"Delay stddev = {stddev}ms")
+    sp = subprocess.run(netem_cmd.split(" "), stderr = subprocess.STDOUT)
+    sp.check_returncode()
+    print("Done")
+
+def read_env(key, default):
+    if key in os.environ:
+        return os.environ[key]
+
+    return default
+
+def get_tc_mean():
+    return read_env("TC_MEAN", 0)
+
+def get_tc_stddev():
+    return read_env("TC_STDDEV", 0)
+
+def get_bench_id():
+    """
+    Reads program arguments and gets the id for the
+    current benchmarking execution
+    """
+
+    if "BENCH_ID" in os.environ:
+        return eval(os.environ["BENCH_ID"])
+
+    raise Exception("Unknown benchmark id")
+
+def load_settings():
+    """
+    Loads setting for current execution
+    """
+    i = get_bench_id()
+    with open(f"{SETTINGS_FOLDER}/setting{i}.json", "r") as fh:
+        s = json.load(fh)
+
+        print(f"Using the following settings for run {i}")
+        print(s)
+
+        return s
+
+def get_impl(settings):
+    """
+    Get implementation to run (java or mir) from experiment settings.
+    """
+
+    if settings["protocol"].startswith("mir-"):
+        return "mir"
+    else:
+        return "java"
+
+def removeprefix(s, prefix):
+    if s.startswith(prefix):
+        s = s[len(prefix):]
+    return s
+
+def main():
+    tc_init()
+    # time.sleep(1000)
+
+    settings = load_settings()
+    impl = get_impl(settings)
+
+    if impl == "mir":
+        # fixup protocol name
+        settings['protocol'] = removeprefix(settings['protocol'], 'mir-')
+
+        print("Running mir's implementation...")
+        mir_bench.run(settings)
+    elif impl == "java":
+        print("Running java's implementation...")
+        java_bench.run(settings)
+    else:
+        print("UNKNOWN IMPLEMENTATION")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,8 @@
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/exceptions/KeysNotFoundException.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/domain/grpc/StateMachineServiceImpl.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/domain/Replica.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/utils/transport/TcpTransport.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/utils/transport/Responsible.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/utils/transport/Connection.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/ReplicaMain.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/replica/src/main/java/pt/ulisboa/tecnico/replica/utils/Confirmable.java

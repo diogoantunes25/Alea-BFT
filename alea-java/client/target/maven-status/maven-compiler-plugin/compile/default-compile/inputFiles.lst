@@ -1,0 +1,8 @@
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/utils/transport/Connection.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/domain/grpc/ConfirmationService.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/ClientMain.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/utils/Confirmable.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/utils/transport/TcpTransport.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/utils/transport/Responsible.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/exceptions/KeysNotFoundException.java
+/home/diogo/work/inesc/alea/alea-benchmarks/alea-java/client/src/main/java/pt/ulisboa/tecnico/client/domain/Client.java

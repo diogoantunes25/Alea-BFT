@@ -1,0 +1,13 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message HeartbeatRequest {
+    int32 replicaId = 1;
+}
+
+message HeartbeatResponse {
+}
+
+service HeartbeatService {
+    rpc heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+}

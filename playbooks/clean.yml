@@ -1,0 +1,51 @@
+- hosts: hosts
+  become: no
+  any_errors_fatal: true
+  gather_facts: no 
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: results folder exists?
+      become: yes
+      stat:
+        path: /tmp/results
+      register: path_results
+
+    - name: zip results
+      become: yes
+      archive:
+        path: /tmp/results
+        dest: /tmp/results.tgz
+      when: path_results.stat.exists
+
+    - name: ensure results directory exists
+      delegate_to: 127.0.0.1
+      file:
+        path: "../results"
+        state: directory
+
+    - name: get results id
+      delegate_to: 127.0.0.1
+      shell: ls "../results" | wc -l
+      register: results_id
+
+    - name: save results locally
+      become: yes
+      fetch:
+        src: /tmp/results.tgz
+        flat: true
+        dest: "../results/results_{{ results_id.stdout_lines[0] }}_{{ inventory_hostname }}.tgz"
+      when: path_results.stat.exists
+
+- hosts: hosts
+  become: yes
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: destroy swarm and overlay network
+      shell: |
+        docker swarm leave --force

@@ -1,0 +1,170 @@
+- hosts: hosts
+  name: Get docker image
+  become: yes
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Docker daemon is running
+      service:
+        name: docker
+        state: started
+
+    - name: Pull docker image
+      community.docker.docker_image:
+        name: "{{ alea_image_name }}"
+        source: pull
+        force_source: true
+
+- hosts: hosts
+  name: Prepare folders and files
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Remove old logs folder
+      ignore_errors: True
+      become: yes
+      file:
+        path: /tmp/alea_logs
+        state: absent
+      when: cleanup is not defined or cleanup|bool
+
+    - name: Remove old results folder
+      ignore_errors: True
+      become: yes
+      file:
+        path: /tmp/alea_results
+        state: absent
+      when: cleanup is not defined or cleanup|bool
+
+    - name: Ensure rsync is installed
+      become: yes
+      package:
+        name: rsync
+        state: present
+
+    - name: Copy settings
+      become: yes
+      synchronize:
+        src: "/tmp/alea_settings"
+        dest: "/tmp/"
+        delete: true
+
+    - name: Create logs folder
+      file:
+        path: /tmp/alea_logs
+        state: directory
+
+    - name: Create replica logs subfolders
+      file:
+        path: "/tmp/alea_logs/replicas/{{item}}"
+        state: directory
+      loop: "{{ replicas }}"
+
+    - name: Create clients logs subfolders
+      file:
+        path: "/tmp/alea_logs/clients/{{item}}"
+        state: directory
+      loop: "{{ clients }}"
+
+    - name: Create results folder
+      file:
+        path: /tmp/alea_results
+        state: directory
+
+    - name: Create replica results subfolders
+      file:
+        path: "/tmp/alea_results/replicas/{{item}}"
+        state: directory
+      loop: "{{ replicas }}"
+
+    - name: Create clients results subfolders
+      file:
+        path: "/tmp/alea_results/clients/{{item}}"
+        state: directory
+      loop: "{{ clients }}"
+
+    - name: Copy parties file
+      become: yes
+      copy:
+        src: "{{ parties_file }}"
+        dest: "{{ parties_file }}"
+
+- hosts: hosts
+  name: Overlay network setup
+  become: yes
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Ensure iptables allows incoming overlay net traffic
+      iptables: 
+        action: insert
+        chain: INPUT
+        # HACK: hardcoded range for INESC machines
+        source: 146.193.41.128/25
+        destination_port: "{{ item.port }}"
+        protocol: "{{ item.protocol }}"
+        jump: ACCEPT
+      loop:
+        - { port: 2377, protocol: tcp } # for communication with and between manager nodes
+        - { port: 7946, protocol: tcp } # for overlay network node discovery
+        - { port: 7946, protocol: udp } # for overlay network node discovery
+        - { port: 4789, protocol: udp } # for overlay network traffic (configurable, default 4789)
+
+    - name: Get running containers
+      community.docker.docker_host_info:
+        containers: yes
+      register: docker_info
+
+    - name: Stop running containers
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ docker_info.containers | map(attribute='Id') | list }}"
+
+    - name: Leave old swarm
+      community.docker.docker_swarm:
+        state: absent
+        force: true
+
+    - name: Delete the previous network
+      community.docker.docker_network:
+        name: "{{ overlay_net }}"
+        state: absent
+        force: true
+
+    - name: Prune containers
+      shell: docker container prune -f
+
+    - name: Prune networks
+      shell: docker network prune -f
+
+    - name: Restart docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: Print ansible_ssh_host
+      debug:
+        msg: "{{ ansible_ssh_host }}"
+
+    - name: Create swarm
+      shell: |
+        docker swarm init --advertise-addr {{ ip }} > /dev/null && \
+        docker swarm join-token worker -q && \
+        docker network create -d overlay --subnet=10.11.0.0/16 --attachable alea-net > /dev/null
+      when: inventory_hostname == "host0"
+      register: token
+
+    - name: Join overlay network
+      shell: |
+        docker swarm join --token "{{ hostvars['host0']['token']['stdout'] }}" "{{ hostvars['host0']['ip'] }}:2377"
+      when: inventory_hostname != "host0"

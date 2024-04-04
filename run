@@ -1,0 +1,218 @@
+#! /usr/bin/env python3
+
+import argparse, json, ansible_runner, os, json
+
+HOSTS_FILE = "/tmp/setup-6-hosts.json"
+MIR_HOSTS_FILE = "/tmp/setup-6-hosts.mir.json"
+ANSIBLE_VERBOSE = False
+CORES_PER_CLIENT = 4
+CORES_PER_REPLICA = 4
+ANSIBLE_FORKS = 20
+PROXY = False
+AVAIL_OPTS = ["txtShuffle", "delayBA", "delayBC", "earlyBA", "quickSigV"]
+parser = argparse.ArgumentParser( prog='run',
+                    description='Run benchmark experiments')
+
+parser.add_argument("hosts_file")
+parser.add_argument("experiment_settings")
+parser.add_argument("user")
+parser.add_argument("ssh_id")
+
+def init_ansible_vars():
+    fh = open("./playbooks/vars.yml", "w")
+
+    fh.write("home_dir: \"${HOME}\"\n")
+    fh.write("alea_image_name: \"diogoantunes25/bft_benchmarks\"\n")
+    fh.write("g5k: false\n")
+
+    fh.close()
+
+def update_ansible_vars(n, n_clients, protocol, lat_avg = 0, lat_stddev = 0, stress = False, load = 0, batch = 1, optimizations = [], fault = "free", rep = 0):
+    fh = open("./playbooks/vars.yml", "w")
+
+    fh.write("home_dir: \"${HOME}\"\n")
+    fh.write("alea_image_name: \"diogoantunes25/bft_benchmarks\"\n")
+    if (stress): fh.write(f"load: {load}\n")
+    fh.write(f"stress: {str(stress).lower()}\n")
+    fh.write(f"n: {n}\n")
+    fh.write(f"n_clients: {n_clients}\n")
+    fh.write("g5k: false\n")
+    fh.write(f"lat_avg: {lat_avg}\n")
+    fh.write(f"lat_stddev: {lat_stddev}\n")
+    fh.write(f"protocol: {protocol}\n")
+    fh.write(f"batch: {batch}\n")
+    fh.write(f"cores_replica: {CORES_PER_REPLICA}\n")
+    fh.write(f"cores_client: {CORES_PER_CLIENT}\n")
+    fh.write(f"fault: {fault}\n")
+    fh.write(f"rep: {rep}\n")
+    
+    for opt in AVAIL_OPTS:
+        fh.write(f"{opt}: {opt in optimizations}\n")
+
+    fh.close()
+
+def gen_inventory(user, n_replicas, n_clients, ssh_id, hosts):
+    inv = open("./playbooks/inventory.ini", "w")
+
+    inv.write("[hosts]\n")
+    for i, host in enumerate(hosts):
+        cores = hosts[host]
+        replicas = []
+        while cores >= CORES_PER_REPLICA and n_replicas > 0:
+            cores -= CORES_PER_REPLICA
+            n_replicas -= 1
+            replicas += [n_replicas]
+
+        clients = []
+        while cores >= CORES_PER_CLIENT and n_clients > 0:
+            cores -= CORES_PER_CLIENT
+            n_clients -= 1
+            clients += [n_clients]
+
+        inv.write(f"host{i} ansible_host='{host}' clients={str(clients).replace(' ', '')} replicas={str(replicas).replace(' ', '')} ansible_user='{user}' ansible_ssh_private_key_file='{ssh_id}'\n")
+
+    if n_clients > 0 or n_replicas > 0:
+        raise Exception(f"Not enough cores ({n_clients} client and \
+{n_replicas} replicas with no machine)")
+
+    inv.close()
+
+def load_settings(settings_file):
+    return json.load(open(settings_file, "r"))
+
+def get_all_configs(configs):
+
+    all_configs = []
+    ns_replicas = []
+    ns_clients = []
+    for e in configs:
+        for n in e["n_replicas"]:
+            ns_replicas += e["n_replicas"]
+            ns_clients += [e["n_clients"]]
+            for protocol in e["protocol"]:
+                for batch in e["batch"]:
+                    if "load" in e:
+                        for load in e["load"]:
+                            for rep in range(int(e["reps"])):
+                                all_configs.append({
+                                    "n": n,
+                                    "n_clients": e["n_clients"],
+                                    "protocol": protocol,
+                                    "mode": e["mode"],
+                                    "lat_avg": e["lat_avg"],
+                                    "lat_stddev": e["lat_stddev"],
+                                    "load": load,
+                                    "batch": batch,
+                                    "rep": rep,
+                                    "fault": e["fault"] if "fault" in e else "free",
+                                    "optimizations": e["optimizations"]
+                                        if "optimizations" in e else AVAIL_OPTS
+                                })
+                    else:
+                        for rep in range(int(e["reps"])):
+                            all_configs.append({
+                                "n": n,
+                                "n_clients": e["n_clients"],
+                                "protocol": protocol,
+                                "mode": e["mode"],
+                                "lat_avg": e["lat_avg"],
+                                "lat_stddev": e["lat_stddev"],
+                                "batch": batch,
+                                "fault": e["fault"] if "fault" in e else "free",
+                                "rep": rep,
+                                "optimizations": e["optimizations"]
+                                    if "optimizations" in e else AVAIL_OPTS
+                            })
+
+    return all_configs, max(ns_replicas), max(ns_clients)
+
+def gen_hosts_file(max_replicas, max_clients):
+    with open(HOSTS_FILE, 'w') as fh:
+        json.dump(dict(
+            replicas=list(map(
+                lambda i: f"replica{i}",
+                range(max_replicas),
+            )),
+            clients=list(map(
+                lambda i: f"client{i}",
+                range(max_clients),
+            )),
+        ), fh, indent=4)
+
+    with open(MIR_HOSTS_FILE, 'w') as fh:
+        json.dump(dict(
+            configuration_number=0,
+            validators=list(map(
+                lambda i: dict(
+                    addr=str(i),
+                    net_addr=f"/dns4/replica{i}/tcp/{10000 + i}",
+                    weight="1",
+                ),
+                range(max_replicas),
+            )),
+        ), fh, indent=4)
+
+def run_playbook(name, quiet = False):
+    playbook = os.path.abspath(f"./playbooks/{name}.yml")
+    inventory = os.path.abspath(f"./playbooks/inventory.ini")
+    ansible_runner.interface.run(playbook = playbook, inventory = inventory, quiet = quiet, forks = ANSIBLE_FORKS) 
+    return
+
+def wait_for_end(hosts):
+
+    def check(p):
+        if p.returncode < 0:
+            print(f"Pushing failed. Dumping to {DUMP_FILE}")
+            # TODO: actually dump
+            exit(2)
+
+    def wait_host(host):
+        print(f"waiting for {host} to end...", end = " ")
+
+        done = False
+        while not done:
+            p = sp.run(["ssh", host, "sudo docker ps"], stderr = sp.STDOUT, stdout = sp.PIPE)
+            check(p)
+            count = len(p.stdout.decode('utf-8').strip().split('\n')) - 1
+            done = (count == 0)
+
+        print(f"done")
+
+    for host in hosts: wait_host(host)
+
+def main():
+
+    args = parser.parse_args()
+    settings = load_settings(args.experiment_settings)
+    configs, max_replicas, max_clients = get_all_configs(settings["configs"])
+    gen_inventory(args.user, max_replicas, max_clients, args.ssh_id, settings["hosts"])
+    gen_hosts_file(max_replicas, max_clients)
+
+    init_ansible_vars()
+    print("Provisioning...", end = " ", flush = True)
+    run_playbook("provision", quiet = False)
+    print("done")
+    for config in configs:
+        update_ansible_vars(config["n"],
+                            config["n_clients"],
+                            config["protocol"],
+                            config["lat_avg"],
+                            config["lat_stddev"],
+                            config["mode"] == "stress",
+                            config["load"] if "load" in config else 0,
+                            config["batch"],
+                            config["optimizations"],
+                            config["fault"],
+                            config["rep"])
+
+        print(f"Testing n={config['n']} n_clients={config['n_clients']} protocol={config['protocol']} load={config['load'] if 'load' in config else 'disabled'} (rep={config['rep']}).", end = " ", flush = True)
+        run_playbook("start", quiet = False)
+        print("Waiting for end...", end = " ", flush = True)
+        wait_for_end()
+        print("Done")
+
+    print("Cleaning.", end = " ", flush = True)
+    run_playbook("clean", quiet = False)
+    print("Done")
+
+main()

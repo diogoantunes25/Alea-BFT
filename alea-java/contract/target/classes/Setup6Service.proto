@@ -1,0 +1,23 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+
+message ReplicateRequest {
+  int64 tid = 1;
+  int32 clientId = 2;
+  bytes payload = 3;
+}
+
+message ReplicateResponse {
+}
+
+message AliveRequest {}
+message AliveResponse {}
+message ExitRequest {}
+message ExitResponse {}
+
+service StateMachineService {
+  rpc replicate(stream ReplicateRequest) returns (ReplicateResponse);
+  rpc check(AliveRequest) returns (AliveResponse);
+  rpc exit(ExitRequest) returns (ExitResponse);
+}

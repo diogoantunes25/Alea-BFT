@@ -1,0 +1,22 @@
+{
+	"hosts": {
+		"alheira": 60,
+		"morcela": 60,
+		"farinheira": 60
+	},
+	"configs": [
+		{
+			"reps": 1,
+			"n_replicas": [16],
+			"n_clients": 1,
+			"protocol": ["alea"],
+			"mode": "stress",
+			"load": [1],
+			"lat_avg": 0,
+			"lat_stddev": 0,
+			"fault": "free",
+			"batch": [1],
+			"optimizations": ["txtShuffle", "delayBA", "delayBC", "earlyBA", "quickSigV"]
+		}
+	]
+}

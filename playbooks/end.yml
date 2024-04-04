@@ -1,0 +1,49 @@
+# Fetches summaries of results into local machine
+- hosts: hosts
+  become: no
+  name: Initial cleaning
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Compress summaries
+      archive:
+        path: /tmp/alea_summaries
+        dest: /tmp/alea_summaries.tgz
+
+    - name: Ensure results directory exists
+      delegate_to: 127.0.0.1
+      file:
+        path: "../results"
+        state: directory
+
+    - name: Get results id
+      delegate_to: 127.0.0.1
+      shell: ls "../summaries" | wc -l
+      register: results_id
+
+    - name: save results locally
+      fetch:
+        src: /tmp/alea_summaries.tgz
+        flat: true
+        dest: "../results/results_{{ results_id.stdout_lines[0] }}_{{ inventory_hostname }}.tgz"
+
+    - name: compile the results
+      delegate_to: 127.0.0.1
+      shell: cd .. && ./compile_results {{ results_id.stdout_lines[0] }}
+      when: inventory_hostname == "host0"
+
+- hosts: hosts
+  become: yes
+  any_errors_fatal: true
+  gather_facts: no
+  vars_files:
+      - vars.yml
+
+  tasks:
+    - name: Destroy swarm and overlay network
+      shell: |
+        docker swarm leave --force
+

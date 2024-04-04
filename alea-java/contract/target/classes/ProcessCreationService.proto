@@ -1,0 +1,15 @@
+syntax = "proto3";
+package pt.ulisboa.tecnico.contract;
+
+message CreateReplicaRequest {
+    int32 replicaId = 1;
+    string ip_pcs = 2;
+}
+
+message CreateReplicaResponse {
+    bool ok = 1;
+}
+
+service ProcessCreationService {
+    rpc replica(CreateReplicaRequest) returns (CreateReplicaResponse);
+}

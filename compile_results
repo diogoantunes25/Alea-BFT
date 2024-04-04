@@ -1,0 +1,9 @@
+#! /bin/bash
+
+for file in $(ls results/results_$1_host*)
+do
+	tar xfv $file
+done
+
+mv alea_summaries summaries/run_$1
+
