@@ -1,0 +1,4 @@
+{
+  "replicas": ["localhost", "localhost", "localhost", "localhost"],
+  "clients": ["localhost"]
+}
