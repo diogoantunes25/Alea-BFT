@@ -2,8 +2,8 @@
 
 This repository contains a prototype implementation of **Alea-BFT** and **HoneybadgerBFT**.
 
-> ![WARNING]
-> **This is a research prototype and proof of concept.** It is not intended for production use.
+> [!WARNING]
+> **This is a research prototype/proof of concept.** It is not intended for production use.
 
 ## Prerequisites
 
